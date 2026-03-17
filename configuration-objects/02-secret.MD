@@ -269,30 +269,287 @@ Limitation:
 
 ---
 
-## 12) Operational Commands You Will Use Often
+## 12) Complete Kubernetes Secret Command Reference
 
-Create:
+Use namespace flag whenever needed:
 
 ```bash
+# one-time for command
+kubectl -n <namespace> <command>
+
+# or set default namespace in current context
+kubectl config set-context --current --namespace=<namespace>
+```
+
+### A) Discover and inspect Secret resources
+
+```bash
+# list all Secret objects in current namespace
+kubectl get secrets
+
+# list in all namespaces
+kubectl get secrets -A
+
+# show wide table with labels
+kubectl get secrets --show-labels
+
+# describe one Secret (metadata + events style output)
+kubectl describe secret <secret-name>
+
+# full YAML
+kubectl get secret <secret-name> -o yaml
+
+# full JSON
+kubectl get secret <secret-name> -o json
+
+# watch Secrets in real time
+kubectl get secrets -w
+
+# API info for Secret kind
+kubectl explain secret
+kubectl explain secret.data
+kubectl explain secret.type
+kubectl explain secret.stringData
+kubectl api-resources | rg -i secret
+```
+
+### B) Create Secrets with kubectl (all common subcommands)
+
+```bash
+# generic (Opaque) from literals
+kubectl create secret generic app-credentials \
+  --from-literal=DB_USER=app_user \
+  --from-literal=DB_PASSWORD='super-secret-password'
+
+# generic from file (single key from file name)
+kubectl create secret generic app-config \
+  --from-file=./config.env
+
+# generic from directory (each file becomes one key)
+kubectl create secret generic tls-bundle \
+  --from-file=./secret-files/
+
+# generic with custom key name from file
+kubectl create secret generic app-keys \
+  --from-file=private.key=./keys/app-private.key
+
+# docker registry secret
+kubectl create secret docker-registry regcred \
+  --docker-server=my-registry.example.com \
+  --docker-username=myuser \
+  --docker-password='mypassword' \
+  --docker-email='me@example.com'
+
+# TLS secret from cert/key
+kubectl create secret tls ingress-tls \
+  --cert=./tls.crt \
+  --key=./tls.key
+
+# dry-run output as YAML (great for GitOps)
+kubectl create secret generic app-credentials \
+  --from-literal=DB_USER=app_user \
+  --from-literal=DB_PASSWORD='super-secret-password' \
+  --dry-run=client -o yaml > secret.yaml
+
+# create from manifest file
 kubectl apply -f secret.yaml
 ```
 
-Inspect metadata safely:
+### C) Create built-in typed Secrets via YAML
 
 ```bash
-kubectl get secret app-credentials -o yaml
+# basic auth secret type
+kubectl apply -f basicauth-secret.yaml
+
+# ssh auth secret type
+kubectl apply -f ssh-secret.yaml
+
+# service-account-token (legacy; usually avoid)
+kubectl apply -f service-account-token-secret.yaml
+
+# bootstrap token (kubeadm flows)
+kubectl apply -f bootstrap-token-secret.yaml
 ```
 
-Read one key (careful in shared terminals):
+### D) Decode and read Secret values safely
 
 ```bash
-kubectl get secret app-credentials -o jsonpath='{.data.DB_PASSWORD}' | base64 -d
+# get all keys (base64 encoded) in a Secret
+kubectl get secret <secret-name> -o jsonpath='{.data}'
+
+# decode one key
+kubectl get secret <secret-name> \
+  -o jsonpath='{.data.DB_PASSWORD}' | base64 -d; echo
+
+# decode all key-values with go-template
+kubectl get secret <secret-name> -o go-template='{{range $k,$v := .data}}{{printf "%s=" $k}}{{printf "%s" $v | base64decode}}{{"\n"}}{{end}}'
+
+# extract secret type only
+kubectl get secret <secret-name> -o jsonpath='{.type}'; echo
 ```
 
-List secret type and key count:
+> Security note: decoded values can end up in terminal history/logging. Prefer secure shells and avoid shared terminals/screens.
+
+### E) Update or rotate Secret data
 
 ```bash
-kubectl get secrets
+# edit Secret in-place (opens editor)
+kubectl edit secret <secret-name>
+
+# replace from updated manifest
+kubectl apply -f secret.yaml
+
+# patch Secret data field (value must be base64)
+kubectl patch secret <secret-name> \
+  -p '{"data":{"DB_PASSWORD":"bmV3LXBhc3M="}}'
+
+# safer rotation workflow: recreate manifest and apply
+kubectl create secret generic app-credentials \
+  --from-literal=DB_USER=app_user \
+  --from-literal=DB_PASSWORD='new-password' \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+After rotating a secret, restart workload if your app only reads env vars at startup:
+
+```bash
+kubectl rollout restart deployment/<deployment-name>
+kubectl rollout status deployment/<deployment-name>
+```
+
+### F) Work with immutable Secrets
+
+```bash
+# check immutable flag
+kubectl get secret <secret-name> -o jsonpath='{.immutable}'; echo
+
+# set immutable=true (via patch)
+kubectl patch secret <secret-name> -p '{"immutable":true}'
+```
+
+If immutable Secret must change:
+
+```bash
+# delete and recreate with new values
+kubectl delete secret <secret-name>
+kubectl apply -f secret.yaml
+```
+
+### G) Use Secrets with ServiceAccounts and image pulls
+
+```bash
+# create docker pull secret
+kubectl create secret docker-registry regcred \
+  --docker-server=my-registry.example.com \
+  --docker-username=myuser \
+  --docker-password='mypassword' \
+  --docker-email='me@example.com'
+
+# attach imagePullSecret to default ServiceAccount
+kubectl patch serviceaccount default \
+  -p '{"imagePullSecrets":[{"name":"regcred"}]}'
+
+# verify ServiceAccount config
+kubectl get sa default -o yaml
+```
+
+### H) RBAC and access checks for Secrets
+
+```bash
+# can current identity read secrets in namespace?
+kubectl auth can-i get secrets
+
+# can current identity list all secrets?
+kubectl auth can-i list secrets
+
+# can a specific SA read a secret?
+kubectl auth can-i get secret/<secret-name> \
+  --as=system:serviceaccount:<namespace>:<serviceaccount> \
+  -n <namespace>
+```
+
+### I) Troubleshooting Secret-related Pod issues
+
+```bash
+# inspect pod events/errors (missing secret, missing key, pull auth issues)
+kubectl describe pod <pod-name>
+
+# list events sorted by time
+kubectl get events --sort-by=.metadata.creationTimestamp
+
+# check pod manifest as seen by API server
+kubectl get pod <pod-name> -o yaml
+
+# view env vars inside container (be careful: sensitive)
+kubectl exec -it <pod-name> -- env
+
+# check mounted secret files
+kubectl exec -it <pod-name> -- ls -la /etc/secret
+kubectl exec -it <pod-name> -- sh -c 'cat /etc/secret/<key-file>'
+```
+
+### J) Delete and cleanup
+
+```bash
+# delete one secret
+kubectl delete secret <secret-name>
+
+# delete from manifest
+kubectl delete -f secret.yaml
+
+# delete all secrets in namespace (dangerous)
+kubectl delete secrets --all
+```
+
+### K) Useful one-liners for audits
+
+```bash
+# list all secret names + type in all namespaces
+kubectl get secrets -A -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name,TYPE:.type'
+
+# count number of secrets per namespace
+kubectl get secrets -A --no-headers | awk '{print $1}' | sort | uniq -c
+
+# find pods referencing imagePullSecrets
+kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{" "}{.spec.imagePullSecrets[*].name}{"\n"}{end}'
+```
+
+### L) Kustomize and Secret generation commands
+
+```bash
+# create kustomization with generated secret
+cat <<'EOF' > kustomization.yaml
+secretGenerator:
+  - name: app-credentials
+    literals:
+      - DB_USER=app_user
+      - DB_PASSWORD=super-secret-password
+generatorOptions:
+  disableNameSuffixHash: false
+EOF
+
+# build and apply
+kubectl kustomize .
+kubectl apply -k .
+```
+
+### M) Quick command map by Secret type
+
+```bash
+# Opaque
+kubectl create secret generic <name> --from-literal=key=value
+
+# dockerconfigjson
+kubectl create secret docker-registry <name> --docker-server=... --docker-username=... --docker-password=...
+
+# tls
+kubectl create secret tls <name> --cert=tls.crt --key=tls.key
+```
+
+For `kubernetes.io/basic-auth`, `kubernetes.io/ssh-auth`, `kubernetes.io/service-account-token`, and `bootstrap.kubernetes.io/token`, create via YAML and apply with:
+
+```bash
+kubectl apply -f <secret-manifest>.yaml
 ```
 
 ---
