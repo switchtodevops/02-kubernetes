@@ -86,6 +86,32 @@ Why `stringData`:
 - write plain text in manifest
 - API server converts to `data` (base64) internally
 
+### `data` vs `stringData` (important difference)
+
+- `data`: values **must be base64-encoded** strings.
+- `stringData`: values are **plain text**; Kubernetes encodes them and stores in `data`.
+- If the same key exists in both, `stringData` value wins during create/apply.
+
+Example:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret-demo
+type: Opaque
+data:
+  username: YWRtaW4=          # admin
+  password: cGFzc3dvcmQ=      # password
+stringData:
+  DB_USER: app_user
+  DB_PASSWORD: super-secret-password
+```
+
+Practical rule:
+- Prefer `stringData` while authoring YAML (more readable).
+- Use `data` when you already have encoded values or when tools generate manifests that way.
+
 ## B) From kubectl
 
 ```bash
