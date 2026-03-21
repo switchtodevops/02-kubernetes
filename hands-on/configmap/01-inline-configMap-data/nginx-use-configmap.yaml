@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-use-configmap
+spec:
+  containers:
+  - name: nginx
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: configmap-indexhtml
+      mountPath: /usr/share/nginx/html
+  volumes:
+  - name: configmap-indexhtml
+    configMap:
+      name: configmap-indexhtml

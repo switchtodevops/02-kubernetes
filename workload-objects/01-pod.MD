@@ -248,20 +248,49 @@ kubectl exec -it <pod> -n <ns> -- /bin/sh
 kubectl exec <pod> -n <ns> -- nslookup kubernetes.default
 ```
 
-### 5) Debug copy / ephemeral debug (1.23+)
+### 5) Port forward (reach a Pod/Service from your laptop)
+
+`kubectl port-forward` opens a **tunnel** from **localhost** (or another local address) to a **port inside the Pod** (or via **Deployment** / **Service**, which pick a backing Pod). The command **blocks** until you press **Ctrl+C**; it needs a working `kubectl` context.
+
+**Syntax:** `LOCAL_PORT:REMOTE_PORT` — traffic to `localhost:LOCAL_PORT` goes to the container’s `REMOTE_PORT`.
+
+```bash
+# Pod — e.g. nginx listening on 80 inside the Pod
+kubectl port-forward pod/my-pod 8080:80 -n demo
+# Then: curl http://localhost:8080   or open http://localhost:8080 in a browser
+
+# Same thing using resource/name form
+kubectl port-forward pod/my-pod 8080:80 -n demo
+
+# Deployment — forwards to a Pod owned by the Deployment (good when Pod name changes)
+kubectl port-forward deployment/myapp 9000:8080 -n demo
+
+# Service — forwards to a Pod selected by the Service (ClusterIP works; no Ingress/LB required for local testing)
+kubectl port-forward svc/myapp-svc 8080:80 -n demo
+
+# Multiple ports in one command
+kubectl port-forward pod/my-pod 8080:80 8443:443 -n demo
+
+# Listen on all interfaces (only if you need LAN access; avoid on untrusted networks)
+kubectl port-forward --address 0.0.0.0 svc/myapp-svc 8080:80 -n demo
+```
+
+**Tip:** For a **multi-container** Pod, port-forward targets the Pod’s network namespace (container port must be listening). Use `kubectl exec` if you need a specific container’s process.
+
+### 6) Debug copy / ephemeral debug (1.23+)
 
 ```bash
 kubectl debug <pod> -n <ns> -it --image=busybox --target=<container>
 ```
 
-### 6) Network / Service
+### 7) Network / Service
 
 ```bash
 kubectl get svc,endpoints -n <ns>
 # From another Pod: curl http://<service>:<port>
 ```
 
-### 7) YAML / diff
+### 8) YAML / diff
 
 ```bash
 kubectl get pod <name> -n <ns> -o yaml
@@ -277,10 +306,10 @@ kubectl get events -n <ns> --sort-by=.lastTimestamp
 | **Pod** | Smallest K8s unit; 1+ containers sharing network & volumes |
 | **Production** | Use controllers + probes + resources + pinned images |
 | **Create** | `kubectl run … --restart=Never` or `apply` YAML |
-| **Debug** | `describe` → events → `logs` → `exec` → endpoints |
+| **Debug** | `describe` → events → `logs` → `exec` → `port-forward` → endpoints |
 
 ---
 
 ## Summary
 
-A **Pod** runs your containers on a node with shared networking and storage. **Create** it imperatively for quick tests or declaratively for real workflows — but in production, **let a Deployment own your Pod template** so Kubernetes can **keep your app running** while you focus on **images, probes, resources, and troubleshooting** using the flow above.
+A **Pod** runs your containers on a node with shared networking and storage. **Create** it imperatively for quick tests or declaratively for real workflows — but in production, **let a Deployment own your Pod template** so Kubernetes can **keep your app running** while you focus on **images, probes, resources, and troubleshooting** using the flow above. Use **`kubectl port-forward`** when you need to hit an app port from your machine without a public Service.
