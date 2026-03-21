@@ -44,22 +44,69 @@ A **ConfigMap** stores **non-sensitive** configuration (key/value pairs, or file
 
 ## Creating a ConfigMap
 
-### Imperative
+### Imperative: `kubectl create configmap` options
+
+| Flag | What it does |
+|------|----------------|
+| **`--from-literal=key=value`** | Add **one** key/value pair. Repeat the flag for **multiple** keys. Values can be quoted if they contain spaces. |
+| **`--from-env-file=path`** | Read a **`.env`-style file**: each non-empty, non-comment line is `KEY=VALUE`. All keys become ConfigMap entries in **one** shot. |
+| **`--from-file=...`** | File contents become the value; filename (or custom key) is the key — see examples below. |
+
+#### `--from-literal`
+
+Use when you have **few** keys or you’re scripting one-off values.
 
 ```bash
-# Literal key/value
 kubectl create configmap app-config -n demo \
   --from-literal=LOG_LEVEL=info \
   --from-literal=FEATURE_X=true
 
+# Value with spaces (quote carefully in your shell)
+kubectl create configmap app-config -n demo \
+  --from-literal='APP_MSG=hello world'
+```
+
+- You can pass **`--from-literal` many times** — each pair is one key in the ConfigMap.
+- Keys must be valid for ConfigMap **`data`** keys; values are plain strings.
+
+#### `--from-env-file`
+
+Use when you already maintain config as **`KEY=VALUE`** lines (same idea as **Docker env files** / **dotenv**).
+
+**Example file `app.env`:**
+
+```text
+LOG_LEVEL=info
+FEATURE_X=true
+# lines starting with # are ignored (comments)
+EMPTY_OK=
+```
+
+```bash
+kubectl create configmap app-config -n demo --from-env-file=app.env
+```
+
+- **One line = one variable.** Format: `KEY=value` (no spaces around `=` in the key name part; value can contain spaces if quoted per shell rules when needed).
+- **Comments:** lines beginning with `#` are ignored.
+- You can combine **`--from-env-file`** with **`--from-literal`** / **`--from-file`** in the same `kubectl create configmap` command (same as mixing other sources).
+
+#### Other imperative patterns
+
+```bash
 # From file (filename becomes key, content = file body)
 kubectl create configmap nginx-html -n demo --from-file=index.html
 
 # From directory (each file = one key)
 kubectl create configmap app-files -n demo --from-file=./config/
 
-# Or explicit key names for files
+# Explicit key name for a file path
 kubectl create configmap app-config -n demo --from-file=app.properties=./config/app.properties
+
+# Combine sources: env file + extra literal + file
+kubectl create configmap app-config -n demo \
+  --from-env-file=app.env \
+  --from-literal=BONUS_KEY=extra \
+  --from-file=nginx.conf=./config/nginx.conf
 ```
 
 **Replace existing:**
@@ -275,6 +322,7 @@ kubectl get configmap <name> -n <ns> -o yaml
 
 ```bash
 kubectl create configmap NAME -n NS --from-literal=k=v
+kubectl create configmap NAME -n NS --from-env-file=path/to/app.env
 kubectl apply -f configmap.yaml
 kubectl edit configmap NAME -n NS
 kubectl delete configmap NAME -n NS

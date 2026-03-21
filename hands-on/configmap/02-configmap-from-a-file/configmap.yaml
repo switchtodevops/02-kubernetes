@@ -1,0 +1,2 @@
+# Create a ConfigMap from a file
+kubectl create configmap nginx-index --from-file=index.html
