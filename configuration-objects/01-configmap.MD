@@ -1,6 +1,8 @@
 # Kubernetes ConfigMap — Developer Guide
 
-A **ConfigMap** stores **non-sensitive** configuration (key/value pairs, or files) that Pods can consume as **environment variables** or **mounted files**. **Crisp, complete, and production-safe.**
+> A ConfigMap is an API object used to store **non-confidential** data in **key-value pairs**. Pods can consume ConfigMaps as **environment variables**, **command-line arguments**, or as **configuration files in a volume**.
+
+A **ConfigMap** is **namespaced** configuration you inject without baking it into the image — **crisp, complete, and production-safe** (expanded below).
 
 ---
 
@@ -11,6 +13,23 @@ A **ConfigMap** stores **non-sensitive** configuration (key/value pairs, or file
 - Decouples **config** from **container image** so the same image runs in dev/stage/prod with different settings.
 
 **Mental model:** “**Inject config** into Pods without baking it into the image.”
+
+Official reference: [ConfigMaps | Kubernetes](https://kubernetes.io/docs/concepts/configuration/configmap/).
+
+---
+
+## ConfigMap object (API shape)
+
+Unlike many resources that use a **`spec`**, a ConfigMap stores data in:
+
+| Field | Content |
+|-------|---------|
+| **`data`** | UTF-8 **strings** (key → string value). |
+| **`binaryData`** | **Binary** values stored as **base64-encoded** strings in the manifest. |
+
+- **`data` and `binaryData` keys must not overlap** (same key name in both is invalid).
+- Each key name may use **alphanumeric characters**, **`-`**, **`_`**, or **`.`**.
+- The object **`metadata.name`** must be a **valid DNS subdomain** name.
 
 ---
 
@@ -27,18 +46,32 @@ A **ConfigMap** stores **non-sensitive** configuration (key/value pairs, or file
 
 ## Ways to use ConfigMap in a Pod
 
-| Method | Behavior |
-|--------|----------|
-| **Single env var** | `valueFrom.configMapKeyRef` — one key → one env var |
-| **Bulk env** | `envFrom` with `configMapRef` — all keys → env vars (names must be valid env names) |
-| **Volume mount** | Mount as **directory** of files (one file per key) or **subPath** for one file |
-| **Command args** | Reference `$(ENV_NAME)` if you set env from ConfigMap first |
+Per the [official documentation](https://kubernetes.io/docs/concepts/configuration/configmap/), there are **four** patterns:
+
+| # | Method | How |
+|---|--------|-----|
+| 1 | **Container `command` / `args`** | Inject values (often via **env** substitution like `$(VAR)` after loading from ConfigMap). |
+| 2 | **Environment variables** | `configMapKeyRef` or `envFrom.configMapRef`. |
+| 3 | **Read-only volume** | Mount keys as files under a `mountPath`. |
+| 4 | **Kubernetes API from app code** | Watch/read ConfigMap via API (can react to updates; **cross-namespace** possible from code — not from Pod fields alone). |
+
+| Pattern (detail) | Behavior |
+|------------------|----------|
+| **Single env var** | `valueFrom.configMapKeyRef` — one key → one env var (env var **name** can differ from ConfigMap **key**). |
+| **Bulk env** | `envFrom` + `configMapRef` — all keys → env vars. |
+| **Volume mount** | Each key → file under `mountPath`, or use **`items`** to pick keys and rename paths (see below). |
+| **`subPath`** | Single file path; **no** auto-update when ConfigMap changes. |
+
+**Caution — static Pods:** A **static Pod** `spec` **cannot** reference a ConfigMap (or other API objects). Use normal workload Pods / controllers.
 
 **Update behavior (important):**
 
-- **Env vars** set at Pod start → **no live reload** from ConfigMap; **restart Pod** to pick up changes.
-- **Mounted volume** (without `subPath`) → kubelet can **sync** updated files **periodically** (default sync interval; not instant). **`subPath`** mounts **do not** auto-update on ConfigMap change.
-- **Immutable ConfigMap** (`immutable: true`) → no updates; replace with new version + rollout.
+- **Environment variables** — **not** updated when ConfigMap changes; **restart Pod** to pick up new values.
+- **Mounted volume** (without `subPath`) — projected files are **eventually** updated when the ConfigMap changes: kubelet refreshes on its **sync interval**, plus **cache propagation** delay (watch vs TTL vs direct API — depends on kubelet config). **Not instant.**
+- **`subPath`** volume mounts — **do not** receive ConfigMap updates.
+- **Immutable ConfigMap** (`immutable: true`) — no in-place data changes; replace object + rollout.
+
+**`envFrom` / env keys:** Environment variable names must follow **Kubernetes rules**. If a ConfigMap **key** is **not** a valid env name, that key may be **skipped** (not injected) — the Pod can still **start**, so missing env vars can look like “silent” bugs. Prefer keys like `LOG_LEVEL` or map explicitly with `configMapKeyRef`.
 
 ---
 
@@ -199,6 +232,22 @@ spec:
 
 **Note:** Each **key** in `data` becomes a **file under `mountPath`** (e.g. `LOG_LEVEL` → file named `LOG_LEVEL`).
 
+**Selective keys with `items`** (only some keys, custom filenames):
+
+```yaml
+volumes:
+  - name: cfg
+    configMap:
+      name: app-config
+      items:
+        - key: app.properties
+          path: app.properties
+        - key: "game.properties"
+          path: game.properties
+```
+
+If omit **`items`**, **every** key in the ConfigMap becomes a file named like the key.
+
 ### 3) Single file with `subPath` (fixed filename)
 
 ```yaml
@@ -260,6 +309,8 @@ spec:
 
 ## Immutable ConfigMaps
 
+Stable since **Kubernetes v1.21**. Set `immutable: true` on the ConfigMap.
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -271,8 +322,16 @@ data:
   LOG_LEVEL: info
 ```
 
-- **Cannot** mutate `data` in place — **create new ConfigMap** (e.g. `app-config-v2`), update Deployment to reference it, then roll out.
-- **Reduces** accidental drift and **etcd** watch churn.
+- **Cannot** flip back to mutable or **edit** `data` / `binaryData` in place — **delete and recreate** (or create a new ConfigMap name/version).
+- **Why use it:** avoids **accidental** updates that break apps; **reduces load** on the API server on clusters with **very large** ConfigMap usage (many mounts / watches).
+- After **delete/recreate**, **Pods** with old mounts may need **recreation** so they point at the new object.
+
+---
+
+## References
+
+- [ConfigMaps (concepts)](https://kubernetes.io/docs/concepts/configuration/configmap/)
+- Task guide: [Configure a Pod to Use a ConfigMap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/)
 
 ---
 
@@ -280,10 +339,12 @@ data:
 
 | Topic | Detail |
 |--------|--------|
-| **Size** | Total ConfigMap size **≤ 1 MiB** (etcd limit); split large files or use volumes / external config store for huge data |
-| **Keys** | Valid key names; env-from keys must be valid **ENV** variable names |
-| **Namespace** | ConfigMap must be **same namespace** as Pod (unless using cross-namespace patterns — not native; avoid hacks) |
-| **Required vs optional** | `optional: true` on `configMapKeyRef` avoids Pod failure if missing (use carefully) |
+| **Size** | Total ConfigMap size **≤ 1 MiB** — not for large blobs; use volumes, DB, or external config for bigger data ([docs](https://kubernetes.io/docs/concepts/configuration/configmap/)). |
+| **Keys** | Only **`a-z` `A-Z` `0-9` `-` `_` `.`** in key names; **`data`** vs **`binaryData`** keys must not overlap. |
+| **Env from keys** | `envFrom` skips keys that are **illegal** as environment variable names; Pod may still **start** — verify with `kubectl exec` / logs. |
+| **Namespace** | ConfigMap and consuming Pod must be in the **same namespace** (Pod fields cannot reference another namespace’s ConfigMap). |
+| **Required vs optional** | `optional: true` on `configMapKeyRef` avoids Pod failure if missing (use carefully). |
+| **Static Pods** | **Cannot** reference ConfigMap in the static Pod manifest. |
 
 ---
 
@@ -332,4 +393,4 @@ kubectl delete configmap NAME -n NS
 
 ## Summary
 
-**ConfigMap** = **namespace-scoped, non-sensitive** config for Pods via **env** or **files**. **Create** with `kubectl create` or **YAML**; **consume** with `configMapKeyRef`, `envFrom`, or **volumes**. Treat updates as **deployment events** (restart or volume sync rules). **Never** store secrets here — use **Secret** or a **secret manager**.
+**ConfigMap** = **namespace-scoped, non-sensitive** config (`data` / `binaryData` — no `spec`). **Create** with `kubectl create` or **YAML**; **consume** via **command/args**, **env**, **volume files**, or **in-app API** (advanced). **Env** does not update live; **mounted volumes** update **eventually** (not with **`subPath`**). **Immutable** ConfigMaps protect changes and scale. **Never** store secrets here — use **Secret** or a **secret manager**. See [kubernetes.io ConfigMaps](https://kubernetes.io/docs/concepts/configuration/configmap/) for the full picture.
