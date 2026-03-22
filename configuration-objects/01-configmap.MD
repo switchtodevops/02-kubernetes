@@ -142,6 +142,63 @@ kubectl create configmap app-config -n demo \
   --from-file=nginx.conf=./config/nginx.conf
 ```
 
+#### Copy-paste examples (paths & files explained)
+
+Assume these paths exist on your machine. Keys in the ConfigMap come from **filenames** (unless you set `key=path`) or from **literals** / **env files**.
+
+**Example directory / files:**
+
+```text
+path/to/bar/
+├── file1.txt          # e.g. content: hello from file1
+└── file2.txt          # e.g. content: hello from file2
+
+path/to/foo.env        # KEY=value lines (dotenv style)
+path/to/bar.env        # another env file
+```
+
+**1) ConfigMap from a whole folder** — every **file** under `path/to/bar` becomes one **key** (key name = file **basename**).
+
+```bash
+kubectl create configmap my-config --from-file=path/to/bar
+# Result: keys like "file1.txt", "file2.txt" → file contents as values
+```
+
+**2) ConfigMap with explicit key names** — keys are **`key1`** and **`key2`**, not the basenames `file1.txt` / `file2.txt`.
+
+```bash
+kubectl create configmap my-config \
+  --from-file=key1=path/to/bar/file1.txt \
+  --from-file=key2=path/to/bar/file2.txt
+# Result: data.key1 = contents of file1.txt, data.key2 = contents of file2.txt
+```
+
+**3) ConfigMap only from literals** — no files; inline strings.
+
+```bash
+kubectl create configmap my-config \
+  --from-literal=key1=config1 \
+  --from-literal=key2=config2
+# Result: data.key1=config1, data.key2=config2
+```
+
+**4) Single file or directory** — same flag: if `path/to/bar` is a **directory**, behavior is like **(1)**. If it is a **single file**, one key = that file’s **basename**.
+
+```bash
+kubectl create configmap my-config --from-file=path/to/bar
+# bar = directory  → multiple keys (one per file inside)
+# bar = single file → one key named "bar"
+```
+
+**5) From one or more env files** — each line `KEY=value` in `foo.env` / `bar.env` becomes a ConfigMap entry (comments `#` ignored).
+
+```bash
+kubectl create configmap my-config \
+  --from-env-file=path/to/foo.env \
+  --from-env-file=path/to/bar.env
+# Result: merged keys from both files (duplicate keys: last file wins)
+```
+
 **Replace existing:**
 
 ```bash
