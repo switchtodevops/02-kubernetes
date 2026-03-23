@@ -167,3 +167,73 @@ BinaryData
 
 Events:  <none>
 ```
+
+---
+
+## Example 2: Create ConfigMap with custom key names
+
+Use this when you want ConfigMap keys to be different from original filenames.
+
+### 1) Generic pattern
+
+```bash
+# Create a config map with explicit keys (instead of file basenames)
+kubectl create configmap my-config \
+  --from-file=key1=/path/to/bar/file1.txt \
+  --from-file=key2=/path/to/bar/file2.txt
+```
+
+### 2) Real command with your files
+
+```bash
+kubectl create configmap my-config \
+  --from-file=indexhtml=./config/index.html \
+  --from-file=nginxconfig=./config/nginx.conf
+```
+
+Note: using `./config/nging.conf` will fail if that filename does not exist. Use `./config/nginx.conf`.
+
+### 3) Verify output
+
+```bash
+kubectl describe cm my-config
+```
+
+Sample output:
+
+```text
+Name:         my-config
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+indexhtml:
+----
+<!DOCTYPE html>
+<html>
+<head><title>Custom Page</title></head>
+<body style="background-color: lightblue;">
+<h1>Hello from ConfigMap!</h1>
+<p>Application version v1.0.0</p>
+<p>ConfigMap example with multiple files.</p>
+</body>
+</html>
+
+nginxconfig:
+----
+server {
+    listen 8080;
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+}
+
+BinaryData
+====
+
+Events:  <none>
+```
