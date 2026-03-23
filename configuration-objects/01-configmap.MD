@@ -168,6 +168,43 @@ BinaryData
 Events:  <none>
 ```
 
+### 4) Pod manifest to use this ConfigMap (Example 1)
+
+Use this single `pod.yaml` to run nginx with config + html from `my-config`.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-custom-8080
+spec:
+  containers:
+    - name: nginx
+      image: nginx:alpine
+      ports:
+        - containerPort: 8080
+      volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: nginx.conf   # Example 1 key name from ConfigMap
+        - name: html-volume
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html   # Example 1 key name from ConfigMap
+  volumes:
+    - name: nginx-conf
+      configMap:
+        name: my-config
+        items:
+          - key: nginx.conf
+            path: nginx.conf
+    - name: html-volume
+      configMap:
+        name: my-config
+        items:
+          - key: index.html
+            path: index.html
+```
+
 ---
 
 ## Example 2: Create ConfigMap with custom key names
@@ -236,4 +273,41 @@ BinaryData
 ====
 
 Events:  <none>
+```
+
+### 4) Pod manifest to use this ConfigMap (Example 2)
+
+Use the same pod shape; only key names are different (`nginxconfig`, `indexhtml`).
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-custom-8080
+spec:
+  containers:
+    - name: nginx
+      image: nginx:alpine
+      ports:
+        - containerPort: 8080
+      volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: nginxconfig   # Example 2 custom key name
+        - name: html-volume
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: indexhtml     # Example 2 custom key name
+  volumes:
+    - name: nginx-conf
+      configMap:
+        name: my-config
+        items:
+          - key: nginxconfig     # Example 2 custom key
+            path: nginxconfig
+    - name: html-volume
+      configMap:
+        name: my-config
+        items:
+          - key: indexhtml       # Example 2 custom key
+            path: indexhtml
 ```
