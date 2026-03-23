@@ -40,6 +40,27 @@ Unlike many resources that use a **`spec`**, a ConfigMap stores data in:
 | **`data`** | UTF-8 **strings** (key → string value). |
 | **`binaryData`** | **Binary** values stored as **base64-encoded** strings in the manifest. |
 
+**Short explanation:**
+
+- **`data`**: use for normal text config (URLs, flags, properties, JSON/YAML text).
+- **`binaryData`**: use when value is raw bytes (for example, a small binary blob). Value must be base64 in YAML.
+- If your value is regular text, prefer **`data`** for readability.
+
+**Example:**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  LOG_LEVEL: "info"
+  app.properties: |
+    server.port=8080
+binaryData:
+  icon.bin: "AAEC"   # example base64 bytes
+```
+
 - **`data` and `binaryData` keys must not overlap** (same key name in both is invalid).
 - Each key name may use **alphanumeric characters**, **`-`**, **`_`**, or **`.`**.
 - The object **`metadata.name`** must be a **valid DNS subdomain** name.
