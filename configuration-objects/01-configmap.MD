@@ -2,7 +2,20 @@
 
 > A ConfigMap is an API object used to store **non-confidential** data in **key-value pairs**. Pods can consume ConfigMaps as **environment variables**, **command-line arguments**, or as **configuration files in a volume**.
 
-A **ConfigMap** is **namespaced** configuration you inject without baking it into the image — **crisp, complete, and production-safe** (expanded below).
+A **ConfigMap** is **namespaced** configuration you inject without baking it into the image 
+
+## Summary highlights (quick reference)
+
+- **Use ConfigMap for non-sensitive data only**; use **Secret** for credentials/tokens/certs.
+- **ConfigMap is namespaced** and consumed by Pods in the **same namespace**.
+- Store values in **`data`** (UTF-8 strings) or **`binaryData`** (base64 binary); keys must not overlap.
+- Main consumption modes: **env vars**, **command/args**, **volume files**, or **Kubernetes API** in app code.
+- **Env values do not auto-refresh** after ConfigMap changes; restart Pods (or rollout restart) to pick changes.
+- **Volume-mounted ConfigMap updates are eventual**; **`subPath` does not auto-update**.
+- Prefer **declarative YAML + GitOps**; for imperative creation use `--from-literal`, `--from-file`, `--from-env-file`.
+- ConfigMap total size limit is about **1 MiB**; avoid huge blobs.
+- Use **`immutable: true`** for safer, stable config at scale; replace with new version on change.
+- For production, use **versioned names** (e.g., `app-config-v2`) and a clear rollout strategy.
 
 ---
 
