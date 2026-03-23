@@ -277,7 +277,8 @@ Events:  <none>
 
 ### 4) Pod manifest to use this ConfigMap (Example 2)
 
-Use this exact `pod.yaml`:
+ConfigMap **`my-config`** has keys **`indexhtml`** and **`nginxconfig`** (not `index.html` / `nginx.conf`). The Pod must reference **that name** and **those keys**.  
+**`subPath`** must match the **`path`** you set under `items` (the filename projected into the volume).
 
 ```yaml
 apiVersion: v1
@@ -293,21 +294,21 @@ spec:
       volumeMounts:
         - name: nginx-conf
           mountPath: /etc/nginx/conf.d/default.conf
-          subPath: nginx.conf
+          subPath: nginxconfig      # must match items[].path below
         - name: html-volume
           mountPath: /usr/share/nginx/html/index.html
-          subPath: index.html
+          subPath: indexhtml       # must match items[].path below
   volumes:
     - name: nginx-conf
       configMap:
-        name: app-files
+        name: my-config            # same as: kubectl describe cm my-config
         items:
-          - key: nginx.conf
-            path: nginx.conf
+          - key: nginxconfig       # must match ConfigMap data key
+            path: nginxconfig      # projected filename → used as subPath
     - name: html-volume
       configMap:
-        name: app-files
+        name: my-config
         items:
-          - key: index.html
-            path: index.html
+          - key: indexhtml
+            path: indexhtml
 ```
