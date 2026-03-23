@@ -277,7 +277,7 @@ Events:  <none>
 
 ### 4) Pod manifest to use this ConfigMap (Example 2)
 
-Use the same pod shape; only key names are different (`nginxconfig`, `indexhtml`).
+Use this exact `pod.yaml`:
 
 ```yaml
 apiVersion: v1
@@ -293,21 +293,21 @@ spec:
       volumeMounts:
         - name: nginx-conf
           mountPath: /etc/nginx/conf.d/default.conf
-          subPath: nginxconfig   # Example 2 custom key name
+          subPath: nginx.conf
         - name: html-volume
           mountPath: /usr/share/nginx/html/index.html
-          subPath: indexhtml     # Example 2 custom key name
+          subPath: index.html
   volumes:
     - name: nginx-conf
       configMap:
-        name: my-config
+        name: app-files
         items:
-          - key: nginxconfig     # Example 2 custom key
-            path: nginxconfig
+          - key: nginx.conf
+            path: nginx.conf
     - name: html-volume
       configMap:
-        name: my-config
+        name: app-files
         items:
-          - key: indexhtml       # Example 2 custom key
-            path: indexhtml
+          - key: index.html
+            path: index.html
 ```
