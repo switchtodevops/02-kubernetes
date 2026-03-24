@@ -296,7 +296,8 @@ spec:
 ```
 
 ```text
-##One-line memory trick
+
+Information about volume mount
 
 👉 subPath = which file to take
 👉 mountPath = where (and as what name) to place it
