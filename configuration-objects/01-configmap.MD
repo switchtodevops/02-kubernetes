@@ -191,28 +191,6 @@ kubectl port-forward pod/testpod 8080:80
 
 Open `http://localhost:8080` — you should see the custom page from the ConfigMap.
 
-### 6) What `volumeMounts` and `volumes` are doing
-
-**`volumeMounts`** (on the container):
-
-| Field | Meaning |
-|-------|---------|
-| **`name: html-volume`** | Links to the volume defined below with the **same** `name` under `spec.volumes`. |
-| **`mountPath: /usr/share/nginx/html/index.html`** | The path **inside the container** where this mount appears. Here it is a **single file path**, not a directory, because we use **`subPath`**. |
-| **`subPath: index.html`** | Mount **only one file** from the volume instead of the whole volume root. The name **`index.html`** must match the **`path`** in `volumes[].configMap.items[]` (the filename Kubernetes projects into that volume). |
-
-**`volumes`** (on the Pod):
-
-| Field | Meaning |
-|-------|---------|
-| **`name: html-volume`** | Volume ID referenced by `volumeMounts.name`. |
-| **`configMap.name: cm1`** | Use the ConfigMap named **`cm1`** (must exist in the **same namespace** as the Pod). |
-| **`items`** | Optional. Pick **which keys** from the ConfigMap to expose and **what filename** they get inside the volume. |
-| **`key: index.html`** | The **key** in `cm1.data` (must match `kubectl describe cm cm1`). |
-| **`path: index.html`** | The **filename** inside the volume mount point’s “directory”. With **`subPath: index.html`**, the container sees that single file at **`mountPath`**. |
-
-**Rule of thumb:** `items[].key` = ConfigMap key; `items[].path` = internal volume filename; **`subPath`** must equal **`path`** when you mount a single file to a single file path like this.
-
 ---
 
 ## Example 2: ConfigMap with custom keys (not file basenames)
