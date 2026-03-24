@@ -295,5 +295,14 @@ spec:
           path: nginx.conf
 ```
 
+```text
+# One-line memory trick
+
+# 👉 subPath = which file to take
+# 👉 mountPath = where (and as what name) to place it
+# 👉 key = file in ConfigMap,
+# 👉 path = file name inside the container (you can rename it)
+```
+
 ---
 
