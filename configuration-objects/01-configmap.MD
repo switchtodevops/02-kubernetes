@@ -312,3 +312,75 @@ spec:
           - key: indexhtml
             path: indexhtml
 ```
+
+
+---
+
+## Example 1 (minimal): folder, single file, and nginx Pod
+
+This is a shorter variant: create from a directory path, or from **one** file, then mount `index.html` into nginx.
+
+### Create from a directory
+
+Each file under the folder becomes one ConfigMap key (basename = key name):
+
+```bash
+kubectl create configmap my-config --from-file=path/to/bar
+```
+
+### Sample `index.html`
+
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Custom Page</title></head>
+<body style="background-color: lightblue;">
+<h1>Hello from ConfigMap!</h1>
+<p>Application version v1.0.0</p>
+<p>ConfigMap example with multiple files.</p>
+</body>
+</html>
+```
+
+### Create ConfigMap from that file only
+
+The file basename becomes the key (`index.html`):
+
+```bash
+kubectl create configmap cm1 --from-file=index.html
+```
+
+### Pod: use `cm1` and mount `index.html` over nginx default page
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testpod
+spec:
+  containers:
+    - name: webapp
+      image: nginx
+      ports:
+        - containerPort: 80
+      volumeMounts:
+        - name: html-volume
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+  volumes:
+    - name: html-volume
+      configMap:
+        name: cm1
+        items:
+          - key: index.html
+            path: index.html
+```
+
+**Apply and try (optional):**
+
+```bash
+kubectl apply -f pod.yaml
+kubectl port-forward pod/testpod 8080:80
+```
+
+Open `http://localhost:8080`. **`key`** and **`subPath` / `path`** must match `kubectl describe cm cm1`.
