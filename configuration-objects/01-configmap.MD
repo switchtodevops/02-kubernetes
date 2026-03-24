@@ -215,3 +215,107 @@ Open `http://localhost:8080` — you should see the custom page from the ConfigM
 
 ---
 
+## Example 2: ConfigMap with custom keys (not file basenames)
+
+### 1) Generic pattern
+
+```bash
+kubectl create configmap my-config \
+  --from-file=key1=/path/to/bar/file1.txt \
+  --from-file=key2=/path/to/bar/file2.txt
+```
+
+Here **`key1`** / **`key2`** are the ConfigMap **data keys**; they can differ from the filenames on disk.
+
+### 2) `nginx.conf` on disk
+
+```bash
+cat nginx.conf
+```
+
+```nginx
+server {
+    listen 8080;
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+}
+```
+
+### 3) Create ConfigMap `cm2` with key `nginxconf`
+
+```bash
+kubectl create cm cm2 --from-file=nginxconf=nginx.conf
+```
+
+The ConfigMap key is **`nginxconf`**; the content comes from file **`nginx.conf`**.
+
+### 4) Describe `cm2`
+
+```bash
+kubectl describe cm cm2
+```
+
+Sample output:
+
+```text
+Name:         cm2
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+nginxconf:
+----
+server {
+    listen 8080;
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+}
+
+BinaryData
+====
+
+Events:  <none>
+```
+
+### 5) Pod manifest (`volume-pod.yaml`)
+
+```bash
+cat volume-pod.yaml
+```
+
+```yaml
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod1
+spec:
+  containers:
+    - name: webapp
+      image: nginx
+      ports:
+        - containerPort: 8090
+      volumeMounts:
+      - name: nginx-conf
+        mountPath: /etc/nginx/conf.d/default.conf
+        subPath: nginx.conf
+
+  volumes:
+    - name: nginx-conf
+      configMap:
+        name: cm2
+        items:
+        - key: nginxconf
+          path: nginx.conf
+```
+
+---
+
