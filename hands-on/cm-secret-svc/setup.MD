@@ -209,6 +209,26 @@ Or open in a browser: `https://localhost:31586`
 
 Expect a **certificate warning** (self-signed) — that is normal.
 
+### Option B: From inside Kubernetes Pod network
+
+Run a temporary curl pod in the same namespace:
+
+```bash
+kubectl run curl-client --image=curlimages/curl:8.8.0 -it --rm --restart=Never -- sh
+```
+
+Inside that shell:
+
+```bash
+curl -k https://nginx-ssl-service
+```
+
+If the service is in another namespace, use full DNS:
+
+```bash
+curl -k https://nginx-ssl-service.<namespace>.svc.cluster.local
+```
+
 ### If that does not work
 
 1. **Confirm Pod is running**
