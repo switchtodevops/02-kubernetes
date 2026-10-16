@@ -5,31 +5,46 @@ Examples use `-n <namespace>` where needed.
 
 ## Table of Contents
 
-- [1) Must-Know Global Flags (Use Everywhere)](#1-must-know-global-flags-use-everywhere)
-- [2) Cluster and Context](#2-cluster-and-context)
-- [3) Namespaces](#3-namespaces)
-- [4) Pods (Most Frequent)](#4-pods-most-frequent)
-  - [List and inspect](#list-and-inspect)
-  - [Logs](#logs)
-  - [Execute and debug](#execute-and-debug)
-  - [Delete/restart behavior](#deleterestart-behavior)
-- [5) Deployments](#5-deployments)
-- [6) ReplicaSets (RS)](#6-replicasets-rs)
-- [7) Services and Endpoints](#7-services-and-endpoints)
-- [8) ConfigMaps](#8-configmaps)
-- [9) Secrets](#9-secrets)
-- [10) StatefulSets and DaemonSets](#10-statefulsets-and-daemonsets)
-- [11) Jobs and CronJobs](#11-jobs-and-cronjobs)
-- [12) Ingress](#12-ingress)
-- [13) Storage (PV, PVC, StorageClass)](#13-storage-pv-pvc-storageclass)
-- [14) RBAC and Service Accounts](#14-rbac-and-service-accounts)
-- [15) Events (Very Important for Troubleshooting)](#15-events-very-important-for-troubleshooting)
-- [16) Resource Usage and Metrics](#16-resource-usage-and-metrics)
-- [17) Fast Troubleshooting Workflow](#17-fast-troubleshooting-workflow)
-- [18) YAML/Manifest Operations](#18-yamlmanifest-operations)
-- [19) Output Formatting and Filtering (Daily Use)](#19-output-formatting-and-filtering-daily-use)
-- [20) Optional Productivity Aliases](#20-optional-productivity-aliases)
-- [Quick Minimal Command Set (If You Learn Only 15)](#quick-minimal-command-set-if-you-learn-only-15)
+<p style="margin:14px 0 6px;font-size:12px;font-weight:600;letter-spacing:.04em;opacity:.75;">CLUSTER AND ACCESS</p>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;">
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#1-must-know-global-flags-use-everywhere">Global Flags</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#2-cluster-and-context">Cluster and Context</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#3-namespaces">Namespaces</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#14-rbac-and-service-accounts">RBAC</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#16-resource-usage-and-metrics">Resource Usage</a>
+</div>
+
+<p style="margin:14px 0 6px;font-size:12px;font-weight:600;letter-spacing:.04em;opacity:.75;">WORKLOADS</p>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;">
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#4-pods-most-frequent">Pods</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#5-deployments">Deployments</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#6-replicasets-rs">ReplicaSets</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#10-statefulsets-and-daemonsets">StatefulSets and DaemonSets</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#11-jobs-and-cronjobs">Jobs and CronJobs</a>
+</div>
+
+<p style="margin:14px 0 6px;font-size:12px;font-weight:600;letter-spacing:.04em;opacity:.75;">NETWORKING, CONFIG, AND STORAGE</p>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;">
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#7-services-and-endpoints">Services and Endpoints</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#12-ingress">Ingress</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#8-configmaps">ConfigMaps</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#9-secrets">Secrets</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#13-storage-pv-pvc-storageclass">Storage</a>
+</div>
+
+<p style="margin:14px 0 6px;font-size:12px;font-weight:600;letter-spacing:.04em;opacity:.75;">DAILY OPERATIONS</p>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;">
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#15-events-very-important-for-troubleshooting">Events</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#17-fast-troubleshooting-workflow">Troubleshooting</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#18-yamlmanifest-operations">YAML and Manifests</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#19-output-formatting-and-filtering-daily-use">Output Formatting</a>
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#20-optional-productivity-aliases">Aliases</a>
+</div>
+
+<p style="margin:14px 0 6px;font-size:12px;font-weight:600;letter-spacing:.04em;opacity:.75;">QUICK REFERENCE</p>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;">
+<a style="display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:rgba(128,128,128,.08);text-align:center;text-decoration:none;line-height:1.35;" href="#quick-minimal-command-set-if-you-learn-only-15">Quick Minimal Command Set</a>
+</div>
 
 ---
 
