@@ -3,6 +3,34 @@
 This is a practical `kubectl` cheat sheet for real-world use.  
 Examples use `-n <namespace>` where needed.
 
+## Table of Contents
+
+- [1) Must-Know Global Flags (Use Everywhere)](#1-must-know-global-flags-use-everywhere)
+- [2) Cluster and Context](#2-cluster-and-context)
+- [3) Namespaces](#3-namespaces)
+- [4) Pods (Most Frequent)](#4-pods-most-frequent)
+  - [List and inspect](#list-and-inspect)
+  - [Logs](#logs)
+  - [Execute and debug](#execute-and-debug)
+  - [Delete/restart behavior](#deleterestart-behavior)
+- [5) Deployments](#5-deployments)
+- [6) ReplicaSets (RS)](#6-replicasets-rs)
+- [7) Services and Endpoints](#7-services-and-endpoints)
+- [8) ConfigMaps](#8-configmaps)
+- [9) Secrets](#9-secrets)
+- [10) StatefulSets and DaemonSets](#10-statefulsets-and-daemonsets)
+- [11) Jobs and CronJobs](#11-jobs-and-cronjobs)
+- [12) Ingress](#12-ingress)
+- [13) Storage (PV, PVC, StorageClass)](#13-storage-pv-pvc-storageclass)
+- [14) RBAC and Service Accounts](#14-rbac-and-service-accounts)
+- [15) Events (Very Important for Troubleshooting)](#15-events-very-important-for-troubleshooting)
+- [16) Resource Usage and Metrics](#16-resource-usage-and-metrics)
+- [17) Fast Troubleshooting Workflow](#17-fast-troubleshooting-workflow)
+- [18) YAML/Manifest Operations](#18-yamlmanifest-operations)
+- [19) Output Formatting and Filtering (Daily Use)](#19-output-formatting-and-filtering-daily-use)
+- [20) Optional Productivity Aliases](#20-optional-productivity-aliases)
+- [Quick Minimal Command Set (If You Learn Only 15)](#quick-minimal-command-set-if-you-learn-only-15)
+
 ---
 
 ## 1) Must-Know Global Flags (Use Everywhere)
